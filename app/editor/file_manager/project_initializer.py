@@ -1,3 +1,4 @@
+import os
 import shutil
 from typing import Tuple
 
@@ -44,3 +45,14 @@ class ProjectInitializer():
         new_project_db.constants.get('game_nid').set_value(nid)
         new_project_db.constants.get('title').set_value(title)
         new_project_db.serialize(path)
+
+    def initialize_new_project_files_with_default_project_path(self, nid, title, lt_project_base_path, new_project_relative_path):
+        print("lt_project_base_path" + lt_project_base_path)
+        print("HAHAHA " + os.path.join(lt_project_base_path, new_project_relative_path))
+        new_project_directory = lt_project_base_path + '/' + new_project_relative_path
+        shutil.copytree(lt_project_base_path + '/' + 'default.ltproj', new_project_directory)
+        new_project_db = Database()
+        new_project_db.load(new_project_directory, CURRENT_SERIALIZATION_VERSION)
+        new_project_db.constants.get('game_nid').set_value(nid)
+        new_project_db.constants.get('title').set_value(title)
+        new_project_db.serialize(new_project_directory)
