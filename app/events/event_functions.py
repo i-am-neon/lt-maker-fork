@@ -114,7 +114,8 @@ def change_special_music(self: Event, special_music_type: str, music: SongPrefab
     elif special_music_type == 'game_over':
         action.do(action.SetGameVar('_music_game_over', music_nid))
 
-def add_portrait(self: Event, portrait, screen_position: Tuple | str, slide=None, expression_list: Optional[List[str]]=None, speed_mult: float=1.0, flags=None):
+def add_portrait(self: Event, portrait, screen_position: Tuple | str, slide=None, 
+                 expression_list: Optional[List[str]] = None, speed_mult: float = 1.0, flags=None):
     flags = flags or set()
 
     portrait_prefab, name = self._get_portrait(portrait)
@@ -142,6 +143,9 @@ def add_portrait(self: Event, portrait, screen_position: Tuple | str, slide=None
 
     new_portrait = EventPortrait(portrait_prefab, position, priority, transition,
                                  slide, mirror, name, speed_mult=speed_mult)
+    if 'low_saturation' in flags:
+        new_portrait.saturation = 0
+
     self.portraits[name] = new_portrait
 
     new_portrait.set_expression(expression_list or set())
@@ -267,14 +271,17 @@ def mirror_portrait(self: Event, portrait, speed_mult: float = 1.0, flags=None):
                 self.wait_time = engine.get_time() + event_portrait.transition_speed + 33
                 self.state = 'waiting'
 
-def bop_portrait(self: Event, portrait, flags=None):
+def bop_portrait(self: Event, portrait, num_bops: int = 2, time: int = None, flags=None):
     flags = flags or set()
 
     _, name = self._get_portrait(portrait)
     event_portrait = self.portraits.get(name)
     if not event_portrait:
         return False
-    event_portrait.bop()
+    if time is not None:
+        event_portrait.bop(num=num_bops, speed=time)
+    else:
+        event_portrait.bop(num=num_bops)
     if 'no_block' in flags:
         pass
     else:
@@ -321,7 +328,8 @@ def speak(self: Event, speaker_or_style: str, text, text_position: Point | Align
         cursor = None
 
     manual_style = SpeakStyle(None, None, text_position, width, text_speed, font_color,
-                              font_type, dialog_box, num_lines, cursor, message_tail, transparency, name_tag_bg, boop_sound, flags)
+                              font_type, dialog_box, num_lines, cursor, message_tail, 
+                              transparency, name_tag_bg, boop_sound, flags)
 
     style = self._resolve_speak_style(speaker_or_style, style_nid, manual_style)
     speaker = style.speaker or ''
@@ -350,11 +358,11 @@ def speak(self: Event, speaker_or_style: str, text, text_position: Point | Align
         else:
             continue
         text = text.replace(block, '{p}', 1)  # Replace first instance
-        self._queue_command(event_command_str)
+        self.queue_command(event_command_str)
         if speaker:
-            self._queue_command('unpause;%s' % speaker)
+            self.queue_command('unpause;%s' % speaker)
         else:
-            self._queue_command('unpause')
+            self.queue_command('unpause')
 
     flags = style.flags
 
@@ -370,6 +378,9 @@ def speak(self: Event, speaker_or_style: str, text, text_position: Point | Align
                           font_color=style.font_color, font_type=style.font_type, num_lines=style.num_lines,
                           draw_cursor=style.draw_cursor, message_tail=style.message_tail, transparency=style.transparency,
                           name_tag_bg=style.name_tag_bg, boop_sound=style.boop_sound, flags=flags)
+        if portrait and 'autogray' in flags:
+            self._saturate_portrait(portrait)
+
         self.text_boxes.append(new_dialog)
 
         if self.do_skip:
@@ -806,11 +817,11 @@ def change_bg_tilemap(self: Event, tilemap=None, flags=None):
 
 def set_game_board_bounds(self: Event, min_x: int, min_y: int, max_x: int, max_y: int, flags=None):
     if not self.game.board:
-        self.logger.warning("set_game_board_bounds: No game board available")
+        self.logger.error("set_game_board_bounds: No game board available")
     elif max_x <= min_x:
-        self.logger.warning("set_game_board_bounds: MaxX must be strictly greater than MinX, (MinX: %d, MaxX: %d)", min_x, max_x)
+        self.logger.error("set_game_board_bounds: MaxX must be strictly greater than MinX, (MinX: %d, MaxX: %d)", min_x, max_x)
     elif max_y <= min_y:
-        self.logger.warning("set_game_board_bounds: MaxY must be strictly greater than MinY, (MinY: %d, MaxY: %d)", min_y, max_y)
+        self.logger.error("set_game_board_bounds: MaxY must be strictly greater than MinY, (MinY: %d, MaxY: %d)", min_y, max_y)
     else:
         bounds = (min_x, min_y, max_x, max_y)
         action.do(action.SetGameBoardBounds(bounds))
@@ -981,6 +992,7 @@ def move_unit(self: Event, unit, position=None, movement_type=None, placement=No
     if not placement:
         placement = 'giveup'
     follow = 'no_follow' not in flags
+    silent = 'silent' in flags
 
     position = self._check_placement(unit, position, placement)
     if not position:
@@ -1006,9 +1018,9 @@ def move_unit(self: Event, unit, position=None, movement_type=None, placement=No
             if self.do_skip:
                 action.do(action.Teleport(unit, position))
             elif speed:
-                action.do(action.Move(unit, position, path, event=True, follow=follow, speed=speed))
+                action.do(action.Move(unit, position, path, event=True, follow=follow, speed=speed, silent=silent))
             else:
-                action.do(action.Move(unit, position, path, event=True, follow=follow))
+                action.do(action.Move(unit, position, path, event=True, follow=follow, silent=silent))
         else:
             self.logger.error("move_unit: no valid path for %s from %s to %s" % (unit, unit.position, position))
             return None
