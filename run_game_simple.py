@@ -7,7 +7,7 @@ os.environ['PYTHONPATH'] = r'Z:\Users\silver\Documents\Dev\personal\Infinit\fe-i
 try: 
     import run_engine_for_project 
     print("Successfully imported run_engine_for_project") 
-    run_engine_for_project.main('_the-grand-tourney.ltproj') 
+    run_engine_for_project.main('default.ltproj') 
 except ImportError as e: 
     print("Failed to import run_engine_for_project:", e) 
     sys.exit(1) 
