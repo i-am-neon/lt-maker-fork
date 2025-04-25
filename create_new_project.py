@@ -10,16 +10,8 @@ def normalize_path(path):
     """Normalize path for cross-platform compatibility."""
     # Remove any double quotes that might have been passed
     path = path.replace('"', '')
-    
-    # Handle based on operating system
-    if os.name == 'nt':  # Windows
-        # For Windows, ensure backslashes are used consistently
-        # Replace forward slashes with backslashes for consistency on Windows
-        path = path.replace('/', '\\')
-    else:  # macOS/Linux (including Wine)
-        # For macOS/Linux, ensure forward slashes are used
-        path = path.replace('\\', '/')
-    
+    # Convert backslashes to forward slashes first for consistency
+    path = path.replace('\\', '/')
     # Then convert to OS-specific path format
     return os.path.normpath(path)
 
